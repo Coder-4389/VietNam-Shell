@@ -1,0 +1,7 @@
+*.os
+*.dll
+
+__pycache__/
+*.py[cod]
+
+*.bak

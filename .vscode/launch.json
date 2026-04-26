@@ -1,0 +1,13 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Bamboo Shell",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/source/main.py",
+            "cwd": "${workspaceFolder}/source",
+            "console": "integratedTerminal"
+        }
+    ]
+}
