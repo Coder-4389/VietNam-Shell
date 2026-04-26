@@ -1,1 +1,2 @@
-from ._prompt import _Prompt
+from ._terminal import _Terminal
+from ._tab import _Tabbar

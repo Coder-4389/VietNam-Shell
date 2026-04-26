@@ -19,33 +19,44 @@ import PIL
 import view
 import script
 
-class View():
+class View(ctk.CTk):
     def __init__(self,
         process: object=None,
         width = 800, height = 600, 
         title = "VietNam Shell 0.0.1"
     ):  
-        self.root = ctk.CTk()
-        self.root.geometry(f"{width}x{height}+64+32")
-        self.root.title(title)
+        super().__init__()
+        self.geometry(f"{width}x{height}+64+32")
+        self.title(title)
 
         self.icon = PIL.ImageTk.PhotoImage(
             PIL.Image.open("assets/icon.png")
         )
-        self.root.iconphoto(True, self.icon)
+        self.iconphoto(True, self.icon)
 
-        self.prompt = view._Prompt(root=self.root)
+        self._frame()
 
-        self.root.mainloop()
+        self.tabbar = view._Tabbar(root=self._tabbar)
+        self.terminal = view._Terminal(root=self._terminal)
 
-    def show(self, text: str):
-        pass
+        self.mainloop()
+
+    def _frame(self, width: int=800, height: int=600):
+        self._tabbar = ctk.CTkFrame(
+            self,
+            width=width,height=36,
+            corner_radius=0
+        ); self._tabbar.pack(side="top", fill="x", expand=True)
+
+        self._terminal = ctk.CTkFrame(
+            self,
+            width=width, height=height-36,
+            corner_radius=0
+        ); self._terminal.pack(side="bottom", fill="both", expand=True)
 
 class Process():
     def __init__(self,
         view: object=None, 
-        script: object=None,
-        
         code: str=None
     ):
         pass
