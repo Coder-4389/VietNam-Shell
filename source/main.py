@@ -36,8 +36,8 @@ class View(ctk.CTk):
 
         self._frame()
 
-        self.tabbar = view._Tabbar(root=self._tabbar)
-        self.terminal = view._Terminal(root=self._terminal)
+        self.tabbar = view._Tabbar(_box=self._terminal, root=self._tabbar)
+        self.tabbar._switch("Tab: 1")
 
         self.mainloop()
 
@@ -54,12 +54,15 @@ class View(ctk.CTk):
             corner_radius=0
         ); self._terminal.pack(side="bottom", fill="both", expand=True)
 
+    def key_bind(self): ...
+
 class Process():
     def __init__(self,
         view: object=None, 
         code: str=None
     ):
-        pass
+        self.view = view
+        self.code = code
 
 def Main():
     pass
