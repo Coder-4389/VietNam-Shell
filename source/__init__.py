@@ -1,6 +1,3 @@
-from .view import _Bar
+from .view import *
 from .script import *
 from .engine import *
-
-def fsdfsdf():
-    print()

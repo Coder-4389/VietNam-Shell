@@ -23,17 +23,30 @@ import sys, os
 from source.registry import Reg
 
 # App modules
-import source
+import source as src
 
 __version__ = "0.0.1 beta"
+
+def syntax_load():
+    try:
+        with open("data/keywords.json", "r", encoding="utf-8") as file:
+            keywords = json.load(file)
+            Reg.set("keywords", keywords)
+    except FileNotFoundError:
+        showerror("Error",
+            "[Error]: Couldn't be found .json file in data \nPlease check your path"
+        ); sys.exit(0)
+
+    except json.decoder.JSONDecodeError:
+        showerror("Error",
+            "[Error]: The .json file is not json format \nPlease check your file"
+        ); sys.exit(0)
 
 def cfg_load():
     try:
         with open("data/cfg.json", "r", encoding="utf-8") as file:
             config = json.load(file)
-
-        Reg.set("cfg", config)
-
+            Reg.set("cfg", config)
     except FileNotFoundError:
         showerror("Error",
             "[Error]: Couldn't be found data/cfg.json \nPlease check your path"
@@ -44,6 +57,19 @@ def cfg_load():
             "[Error]: data/cfg.json is not json format \nPlease check your file"
         ); sys.exit(0)
 
+def setup():
+    syntax_load()
+    cfg_load()
+
+class Process():
+    def __init__(self):
+        with open("data/keywords.json", "r", encoding="utf-8") as file: self._kws = json.load(file)
+        with open("data/msg.json", "r", encoding="utf-8") as file: self._msg = json.load(file)
+        Reg.set("Process", self)
+
+    def run(self, code: str):
+        tokens = src.Analyze(code=code)
+
 class UI(ctk.CTk):
     def __init__(self):
         super().__init__()
@@ -52,7 +78,7 @@ class UI(ctk.CTk):
         self.title("VietNam Shell - 0.0.1 beta")
 
         self._frame_setup()
-        self._bar = source._Bar(root=self._bar_frame, _box=self._box_frame)
+        self._bar = src.Bar(root=self._bar_frame, _box=self._box_frame)
         self._bar._switch_tab("Tab: 1")
 
         Reg.set("UI", self)
@@ -74,10 +100,6 @@ class UI(ctk.CTk):
             border_width=0,
         ); self._box_frame.pack(fill="both", expand=True)
 
-class Process():
-    def __init__(self):
-        Reg.set("Process", self)
-
 if __name__ == "__main__":
-    cfg_load()
-    UI()
+    setup()
+    if Process(): UI()

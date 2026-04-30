@@ -1,1 +1,6 @@
-from ._TUI import (_Bar, _Terminal)
+__all__ = [
+    "Bar",
+]
+
+from ._terminal import *
+from .widgets import *

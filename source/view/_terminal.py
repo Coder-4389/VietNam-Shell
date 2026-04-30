@@ -7,7 +7,7 @@ from tkinter.messagebox import showinfo
 from tkinter.messagebox import showerror
 from tkinter.messagebox import askokcancel
 
-# data process modules
+# process modules
 import json
 
 # system modules
@@ -65,6 +65,7 @@ class _Terminal(ctk.CTkTextbox):
     def _prompt(self, event=None): 
         if self.index("end-1c") != self.index("lockpos"): 
             code = self.get("lockpos", "end-1c")
+            Reg.get("Process").run(code)
 
         self.insert("end", _make_prompt(self.path))
         self.mark_set("lockpos", "end-1c")
@@ -74,14 +75,14 @@ class _Terminal(ctk.CTkTextbox):
         return "break"
 
     def write(self, *args, **kwargs: str):
-        for i, val in enumerate(arg):
+        for i, val in enumerate(args):
             if i!=0: self.insert("end", "\n") 
             self.insert("end", val)
 
         self.mark_set("lockpos", "end-1c")
         self.mark_gravity("lockpos", "left")
 
-class _Bar(ctk.CTkSegmentedButton):
+class Bar(ctk.CTkSegmentedButton):
     def __init__(self, 
         root: object=None,
         _box: object=None
@@ -137,7 +138,7 @@ class _Bar(ctk.CTkSegmentedButton):
         self.tabnum += 1
         self.tablist.add(name)
         _box = _Terminal(Reg.get("UI")._box_frame)
-        self._tab[_name] = _Terminal(_box)
+        self._tab[name] = _Terminal(_box)
 
         values = list(self.cget("values")).append(name)
         self.configure(values=values)
