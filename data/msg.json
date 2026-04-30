@@ -1,0 +1,9 @@
+{
+    "help": [
+        "VietNam Shell's help documents",
+        "--- app system code ---",
+        "exit: exit the program",
+        "quit: force stop the process",
+        "tab: a group code "
+    ]
+}

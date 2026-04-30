@@ -1,2 +1,1 @@
-from ._terminal import _Terminal
-from ._tab import _Tabbar
+from ._TUI import (_Bar, _Terminal)

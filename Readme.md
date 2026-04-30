@@ -24,24 +24,20 @@
 ## Some notes about VietNam Shell you need know before develop
 
 1.  **The structure of project:**
-    + The project structure is like this
+    + The source folder have structure is like this
     ```
-    VietNam-Shell/
-    ├─ assets/
-    ├─ docs/
-    ├─ source/
-    │  ├─ engine/
-    │  ├─ script/
-    │  ├─ view/
-    ├── .gitignore
-    └── Readme.md
+    source/
+    ├─ engine/
+    ├─ script/
+    ├─ view/
+    └─ registry.py
     ```
 
     ---
-    > The project have 3 main dir are: 
-    + **assets**: Storage all resources of project.
-    + **docs**: Have documents for project.
-    + **source**: This most important folder, it have all project source code.
+    > It have 3 main dir are: 
+    -  **engine folder is a folder have runtime and compiler write by C/C++.**
+    - **script folder is a folder contain analyzer the code's syntax.**
+    - **view folder have app TUI and app interface with python's customtkinter**
 
 2. **The language use to do project**
     + The project use 3 main languages are `Python` and `C/C++`.
