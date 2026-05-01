@@ -36,6 +36,9 @@ TokType = {
     "\""       : 55,                          # ' 
     "\'"       : 56,                          # " 
 
+    "==": 57, "!=": 58, "|=": 59, ">=": 60, "<=": 61, "%=": 62, "*=": 63, "/=": 64, "+=": 65, "-=": 66,
+    "&&": 67, "--": 68, "//": 69,
+
     "UNKNOWN"  : 255,
 }
 
@@ -63,41 +66,33 @@ TokName = {
     54: "Not", 
     55: "SQ",       56: "DQ",
 
+    57: "Eq",       58: "Neq",
+    59: "OrEq",     60: "GtEq",
+    61: "LtEq",     62: "ModEq",
+    63: "MulEq",    64: "DivEq",
+    65: "AddEq",    66: "SubEq",
+    67: "And",      68: "Dec",
+    69: "FloorDiv",
+
     255: "UNKNOWN"
 }
 
 class Pos():
     def __init__(self,
-        line: int=0,
-        col: int=0,
-        idx: int=0
-    ): 
-        self.line = line
-        self.col = col
-        self.idx = idx
+        line: int=0, col: int=0, idx: int=0
+    ): self.line = line; self.col = col; self.idx = idx
 
     def adv(self, curr_char: str="") -> None:
         self.idx += 1; self.col += 1
-        if curr_char == "\n": 
-            self.line += 1; self.col = 0
+        if curr_char == "\n": self.line += 1; self.col = 0
 
     def copy(self): 
-        return Pos(
-            self.line, 
-            self.col, 
-            self.idx
-        )
+        return Pos(self.line, self.col, self.idx)
 
 class Token():
     def __init__(self,
-        _type: int=255,
-        value: str="",
-        pos: Pos=Pos()
-    ): 
-        self.type = _type
-        self.value = value
-
-        self.pos = pos
+        _type: int=255, value: str="", pos: Pos=Pos()    
+    ): self.type = _type; self.value = value; self.pos = pos
 
     def __str__(self) -> str:
         return f"{TokName.get(self.type, 'UNKNOWN')}({self.value}) at {self.pos.line}:{self.pos.col}"

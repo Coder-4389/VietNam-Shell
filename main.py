@@ -27,14 +27,16 @@ import source as src
 
 __version__ = "0.0.1 beta"
 
-def syntax_load():
+def _load(path: str):
     try:
-        with open("data/keywords.json", "r", encoding="utf-8") as file:
-            keywords = json.load(file)
-            Reg.set("keywords", keywords)
+        with open(path, "r", encoding="utf-8") as file:
+            data = json.load(file)
+            full_name = os.path.basename(path)
+            name = full_name.split(".")[0]
+            Reg.set(name, data)
     except FileNotFoundError:
         showerror("Error",
-            "[Error]: Couldn't be found .json file in data \nPlease check your path"
+            "[Error]: Couldn't be found .json file \nPlease check your path"
         ); sys.exit(0)
 
     except json.decoder.JSONDecodeError:
@@ -42,33 +44,20 @@ def syntax_load():
             "[Error]: The .json file is not json format \nPlease check your file"
         ); sys.exit(0)
 
-def cfg_load():
-    try:
-        with open("data/cfg.json", "r", encoding="utf-8") as file:
-            config = json.load(file)
-            Reg.set("cfg", config)
-    except FileNotFoundError:
-        showerror("Error",
-            "[Error]: Couldn't be found data/cfg.json \nPlease check your path"
-        ); sys.exit(0)
-
-    except json.decoder.JSONDecodeError:
-        showerror("Error",
-            "[Error]: data/cfg.json is not json format \nPlease check your file"
-        ); sys.exit(0)
-
 def setup():
-    syntax_load()
-    cfg_load()
+    _load("data/cfg.json")
+    _load("data/keywords.json")
+    _load("data/msg.json")
 
 class Process():
-    def __init__(self):
+    def __init__(self): # load data
         with open("data/keywords.json", "r", encoding="utf-8") as file: self._kws = json.load(file)
         with open("data/msg.json", "r", encoding="utf-8") as file: self._msg = json.load(file)
         Reg.set("Process", self)
 
     def run(self, code: str):
         tokens = src.Analyze(code=code)
+        print(tokens) # debug code
 
 class UI(ctk.CTk):
     def __init__(self):
@@ -85,7 +74,7 @@ class UI(ctk.CTk):
 
         self.mainloop()
 
-    def _frame_setup(self) -> None:
+    def _frame_setup(self) -> None: # frame setup
         self._bar_frame = ctk.CTkFrame(
             self,
             width=self.width, height=36,

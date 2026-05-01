@@ -1,6 +1,15 @@
-[
-"help",
-"exit",
-"tab",
-"setting"
-]
+{
+    "Block-Code": [
+        "if", "elif", "else", 
+        "for", "while", "break",
+        "end", "use"
+    ],
+    "Execute-Code": [
+        "print", "input"
+    ],
+    "Define-Code": [
+        "func",
+        "struct",
+        "set"
+    ]
+}

@@ -1,6 +1,5 @@
 # process modules
 import string
-import re
 import json
 
 # system modules
@@ -11,6 +10,13 @@ from source.registry import Reg
 
 # App modules
 from source.script.token import *
+
+def _kword_load() -> list[str]:
+    listed_keywords: list[str] = []
+    for group in Reg.get("keywords").values():
+        for kw in group: listed_keywords.append(kw)
+
+    return listed_keywords
 
 class Lexer:
     def __init__(self) -> list:
@@ -73,14 +79,17 @@ class Lexer:
         _is_char    = lambda v: v.startswith("'") and v.endswith("'")
         _is_bool    = lambda v: v.lower() in ['true', 'false']
         _is_name    = lambda v: v.isidentifier()
-        _is_kword   = lambda v: v in Reg.get("keywords")
+        _is_kword   = lambda v: v in _kword_load()
         _is_block   = lambda v: v in ["if", "elif", "else"]
         _is_loop    = lambda v: v in ["for", "while"]
         _is_schar   = lambda v: v in self.spec_chars
         _is_dchar   = lambda v: v in self.spec_dchars
+        _is_func    = lambda v: v == "func"
+        _is_class   = lambda v: v == "class"
+        _is_incl    = lambda v: v == "include"
 
-        if   _is_dchar(value)  : return TokName.get(value,      TokType["UNKNOWN"])
-        elif _is_schar(value)  : return TokName.get(value,      TokType["UNKNOWN"])
+        if   _is_dchar(value)  : return TokType.get(value,      TokType["UNKNOWN"])
+        elif _is_schar(value)  : return TokType.get(value,      TokType["UNKNOWN"])
         elif _is_int(value)    : return TokType.get("INT",      TokType["UNKNOWN"])
         elif _is_float(value)  : return TokType.get("FLOAT",    TokType["UNKNOWN"])
         elif _is_str(value)    : return TokType.get("STR",      TokType["UNKNOWN"])
@@ -89,6 +98,9 @@ class Lexer:
         elif _is_block(value)  : return TokType.get("BLOCK",    TokType["UNKNOWN"])
         elif _is_loop(value)   : return TokType.get("LOOP",     TokType["UNKNOWN"])
         elif _is_kword(value)  : return TokType.get("KWORD",    TokType["UNKNOWN"])
+        elif _is_func(value)   : return TokType.get("FUNC",     TokType["UNKNOWN"])
+        elif _is_class(value)  : return TokType.get("CLASS",    TokType["UNKNOWN"])
+        elif _is_incl(value)   : return TokType.get("INCL",     TokType["UNKNOWN"])
         elif _is_name(value)   : return TokType.get("NAME",     TokType["UNKNOWN"])
         return TokType["UNKNOWN"]
 
@@ -104,10 +116,8 @@ class Parser():
     def __init__(self):
         Reg.set("Parser", self)
 
-def _setup(): Lexer(); Parser()
-
 def Analyze(code: str) -> list:
-    _setup()
+    Lexer(); Parser()
     tokens = Reg.get("Lexer").tokenize(code=code)
 
     return tokens
