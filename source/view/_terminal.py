@@ -76,7 +76,8 @@ class _Terminal(ctk.CTkTextbox):
 
     def write(self, *args, **kwargs: str):
         for i, val in enumerate(args):
-            if i!=0: self.insert("end", "\n") 
+            # if i!=0: 
+            self.insert("end", "\n") 
             self.insert("end", val)
 
         self.mark_set("lockpos", "end-1c")
@@ -126,6 +127,8 @@ class Bar(ctk.CTkSegmentedButton):
         self.curr_tab().pack_forget()
         self.curr = _name
         self.curr_tab().pack(fill="both", expand=True)
+
+        Reg.set("curr_tab", self.curr_tab())
 
     def _new_tab(self, name: str) -> None:
         if name is None or name.strip() == "": 
