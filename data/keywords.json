@@ -8,8 +8,11 @@
         "print", "input"
     ],
     "Define-Code": [
-        "func",
-        "struct",
-        "set"
+        "func", "struct",
+        "set", "const","space"
+    ],
+    "Types-Code": [
+        "int", "float", "str", "bool", "char",
+        "list", "dict"
     ]
 }

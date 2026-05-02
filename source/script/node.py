@@ -17,6 +17,18 @@ class ValueNode(BaseNode):
     def __repr__(self): 
         return f"Value: {self.value}"
 
+class ListNode(BaseNode):
+    def __init__(self, elements: list[BaseNode]=[]):
+        self.elements = elements
+    def __repr__(self): 
+        return f"List: [{', '.join(map(str, self.elements))}]"
+
+class MapNode(BaseNode):
+    def __init__(self, pairs: dict[str, BaseNode]={}):
+        self.pairs = pairs
+    def __repr__(self): 
+        return f"Map: {{{', '.join(f'{k}: {v}' for k, v in self.pairs.items())}}}"
+
 class AsgNode(BaseNode):
     def __init__(self, name: str="", value: BaseNode=None):
         self.name = name
@@ -49,7 +61,7 @@ class BlockNode(BaseNode):
     def __init__(self, statements: list[BaseNode]=[]):
         self.statements = statements
     def __repr__(self): 
-        return f"Block: {{\n  " + "\n  ".join(map(str, self.statements)) + "\n}}"
+        return "Block: {\n" + "\n  ".join(map(str, self.statements)) + "\n}"
 
 class FuncNode(BaseNode):
     def __init__(self, name: str="", params: list[str]=[], body: BlockNode=None):

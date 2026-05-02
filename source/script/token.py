@@ -13,7 +13,7 @@ TokType = {
     "FUNC"     : 12,                          # function
     "CLASS"    : 13,                          # class
     "KWORD"    : 14,                          # keyword
-    "INCL"     : 15,                          # include
+    "USE"      : 15,                          # include
 
     # --- Symbols (30 - 69) ---
     "{"        : 32, "}"  : 33,               # { } 
@@ -49,7 +49,7 @@ TokName = {
     # --- Keywords ---
     10: "BLOCK",    11: "LOOP",
     12: "FUNC",     13: "CLASS",
-    14: "KWORD",    15: "INCL",
+    14: "KWORD",    15: "USE",
 
     # --- Symbols ---
     32: "L3",       33: "R3",

@@ -50,13 +50,16 @@ def setup():
     _load("data/msg.json")
 
 class Process():
-    def __init__(self): # load data
-        with open("data/keywords.json", "r", encoding="utf-8") as file: self._kws = json.load(file)
-        with open("data/msg.json", "r", encoding="utf-8") as file: self._msg = json.load(file)
+    def __init__(self): 
+        # Call all processing object
+        src.Lexer()
+        src.Parser()
+
+        # Global self with app's registry
         Reg.set("Process", self)
 
     def run(self, code: str):
-        tokens = src.Analyze(code=code)
+        tokens = src.analyze(code=code)
         print(tokens) # debug code
 
 class UI(ctk.CTk):
