@@ -39,19 +39,6 @@ class Lexer:
                 self.pos.adv(_char); i += 1
                 continue
 
-            if i + 1 < len(code):
-                _dchar = code[i:i+2]
-                if _dchar in self.spec_dchars:
-                    for c in _dchar: 
-                        self.pos.adv(c); i += 1
-                    yield (_dchar, start_pos)
-                    continue
-
-            if _char in self.spec_chars:
-                self.pos.adv(_char); i += 1
-                yield (_char, start_pos)
-                continue
-
             if _char == '"':
                 start = i
                 self.pos.adv(code[i]); i += 1
@@ -67,6 +54,19 @@ class Lexer:
                 while i < len(code) and (code[i].isalnum() or code[i] == '_'):
                     self.pos.adv(code[i]); i += 1
                 yield (code[start:i], start_pos)
+                continue
+
+            if i + 1 < len(code):
+                _dchar = code[i:i+2]
+                if _dchar in self.spec_dchars:
+                    for c in _dchar: 
+                        self.pos.adv(c); i += 1
+                    yield (_dchar, start_pos)
+                    continue
+
+            if _char in self.spec_chars:
+                self.pos.adv(_char); i += 1
+                yield (_char, start_pos)
                 continue
                 
             self.pos.adv(_char); i += 1
@@ -129,7 +129,8 @@ class Parser():
     def curr(self): 
         if self.idx < len(self.tokens): return self.tokens[self.idx]
     def not_match(self, _type: int) -> bool:
-        return self.curr() is None or self.curr().type != _type
+        if self.curr() is None: return True
+        return self.curr().type != _type
     def peek(self, cnt: int=1): 
         if self.idx + cnt < len(self.tokens): return self.tokens[self.idx + cnt]
 
@@ -170,12 +171,6 @@ class Parser():
         _name = self.curr().value
         self.adv()
 
-        if self.curr() and self.curr().type == TokType[":"]:
-            self.adv()
-            _type = self.curr().value
-            if _type != self.peek(2).value:
-                raise SyntaxError("Expected type name after ':', got type for var")
-
         if self.not_match(TokType["="]):
             raise SyntaxError("Expected '=' after var name, got '=' to assign value to var")
         self.adv()
@@ -213,13 +208,15 @@ class Parser():
         self.adv()
         statements: list[BaseNode] = []
 
-        while self.not_match(TokType["}"]):
+        while self.curr() != None and self.not_match(TokType["}"]):
             start_idx = self.idx
             tok = self.curr()
             # print(tok) # debug code
 
             code = self._process(tok)
             statements.append(code)
+
+        if self.curr() == None: raise SyntaxError("Expected '}' to end the block, got '}' to end the block")
 
         return BlockNode(statements)
 
@@ -236,7 +233,7 @@ class Parser():
         self.adv()
 
         _params: list[str] = []
-        while self.curr().type != TokType[")"]:
+        while self.curr() != None and self.curr().type != TokType[")"]:
             if self.not_match(TokType["NAME"]):
                 raise SyntaxError("Expected param name, got name for param")
             _params.append(self.curr().value)
@@ -250,8 +247,7 @@ class Parser():
 
         _body = self._block()
 
-        if _name not in self._know_func:
-            self._know_func.add(_name)
+        if _name not in self._know_func: self._know_func.add(_name)
         else: raise SyntaxError(f"'{_name}' func had been definition")
 
         return FuncNode(_name, _params, _body)
@@ -264,15 +260,49 @@ class Parser():
         self.adv()
         statements: list[BaseNode] = []
 
-        while self.not_match(TokType["}"]):
+        while self.curr() != None and self.not_match(TokType["}"]):
             tok = self.curr()
             code = self._process(tok)
             statements.append(code)
             self.adv()
 
+        if self.curr() == None: raise SyntaxError("Expected '}' to end the space, got '}' to end the space")
+
         self._know_space.add(_name)
 
         return BlockNode(statements)
+
+    def _struct(self) -> StructNode:
+        self.adv()
+
+        if self.not_match(TokType["NAME"]):
+            raise SyntaxError("Expected struct name, got name for struct")
+        _name = self.curr().value
+        self.adv()
+
+        if self.not_match(TokType["{"]):
+            raise SyntaxError("Expected '{' to start struct, got '{' to mark the start of struct")
+        self.adv()
+
+        var_block: dict[str, str] = dict()
+
+        while self.curr() != None and self.not_match(TokType["}"]):
+            
+            _type = self.curr().value
+            self.adv()
+            if self.not_match(TokType[":"]):
+                raise SyntaxError("Expected ':' to devide type and name, got ':' to divide")
+            self.adv()
+            if self.not_match(TokType["NAME"]):
+                raise SyntaxError("The name is expected or wrong, please change or add name for it")
+            _var_name = self.curr().value
+            self.adv()
+
+            var_block[_var_name] = _type
+
+        if self.curr() == None: raise SyntaxError("Expected '}' to end the struct, got '}' to end the struct")
+
+        return StructNode(_name, var_block)
 
     def _var(self) -> VarNode:
         _name = self.curr().value; self.adv()
@@ -281,9 +311,14 @@ class Parser():
         return VarNode(_name)
 
     def _call(self) -> CallNode:
-        _name = self.curr().value; self.adv()
+        _name = self.curr().value
         if _name not in self._know_func: 
             raise SyntaxError(f"'{_name}' func doesn't have definition")
+        self.adv()
+
+        if self.not_match(TokType["("]):
+            raise SyntaxError(f"Expected '(' to start of args, got '(' to mark start of arg")
+        self.adv()
 
         _args: list[BaseNode] = []
         while self.not_match(TokType[")"]):
@@ -316,7 +351,7 @@ class Parser():
 
 def analyze(code: str) -> list:
     tokens = Reg.get("Lexer").tokenize(code=code)
-    # print(tokens) # debug code
+    print(tokens) # debug code
     AST_root = Reg.get("Parser").parse(tokens=tokens)
 
     return AST_root

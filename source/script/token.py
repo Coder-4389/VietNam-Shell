@@ -64,7 +64,7 @@ TokName = {
     50: "Mul",      51: "Div",
     52: "Mod",      53: "Asg",
     54: "Not", 
-    55: "SQ",       56: "DQ",
+    55: "DQ",       56: "SQ",
 
     57: "Eq",       58: "Neq",
     59: "OrEq",     60: "GtEq",

@@ -101,6 +101,14 @@ class LoopNode(BaseNode):
     def __repr__(self): 
         return f"Loop: while ({self.condition}) {self.body}"
 
+class StructNode(BaseNode):
+    def __init__(self, name: str, list_item: dict[str, str]|None=None):
+        self.name = name
+        if list_item is None: self.l_item = {}
+        else: self.l_item = list_item
+    def __repr__(self):
+        return f"Struct {self.name}: {{{', '.join(f'{k}: {v}' for k, v in self.l_item.items())}}}"
+
 if __name__ == "__main__":
     print("[info]: This file only for import.")
     input("Press Enter to exit...")
