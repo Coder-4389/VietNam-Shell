@@ -1,4 +1,4 @@
-TokType = {
+Tok_t = {
     # --- Data (0 - 9) ---
     "NAME"     : 0, 
     "INT"      : 1, 
@@ -42,7 +42,7 @@ TokType = {
     "UNKNOWN"  : 255,
 }
 
-TokName = {
+Tok_n = {
     # --- Data ---
     0: "NAME", 1: "INT", 2: "FLOAT", 3: "STR", 4: "CHAR", 5: "BOOL",
 
@@ -95,7 +95,7 @@ class Token():
     ): self.type = _type; self.value = value; self.pos = pos
 
     def __str__(self) -> str:
-        return f"{TokName.get(self.type, 'UNKNOWN')}({self.value}) at {self.pos.line}:{self.pos.col}"
+        return f"{Tok_n.get(self.type, 'UNKNOWN')}({self.value}) at {self.pos.line}:{self.pos.col}"
 
     def __repr__(self) -> str:
-        return f"{TokName.get(self.type, 'UNKNOWN')}({self.value}) at {self.pos.line}:{self.pos.col}"
+        return f"{Tok_n.get(self.type, 'UNKNOWN')}({self.value}) at {self.pos.line}:{self.pos.col}"

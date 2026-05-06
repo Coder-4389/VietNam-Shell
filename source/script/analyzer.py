@@ -11,6 +11,7 @@ from source.registry import Reg
 # App modules
 from source.script.token import *
 from source.script.node import *
+from source.script.typedef import *
 
 def _kword_load() -> list[str]:
     listed_keywords: list[str] = []
@@ -59,8 +60,7 @@ class Lexer:
             if i + 1 < len(code):
                 _dchar = code[i:i+2]
                 if _dchar in self.spec_dchars:
-                    for c in _dchar: 
-                        self.pos.adv(c); i += 1
+                    for c in _dchar: self.pos.adv(c); i += 1
                     yield (_dchar, start_pos)
                     continue
 
@@ -88,21 +88,35 @@ class Lexer:
         _is_class   = lambda v: v == "class"
         _is_incl    = lambda v: v == "include"
 
-        if   _is_dchar(value)  : return TokType.get(value,      TokType["UNKNOWN"])
-        elif _is_schar(value)  : return TokType.get(value,      TokType["UNKNOWN"])
-        elif _is_int(value)    : return TokType.get("INT",      TokType["UNKNOWN"])
-        elif _is_float(value)  : return TokType.get("FLOAT",    TokType["UNKNOWN"])
-        elif _is_str(value)    : return TokType.get("STR",      TokType["UNKNOWN"])
-        elif _is_char(value)   : return TokType.get("CHAR",     TokType["UNKNOWN"])
-        elif _is_bool(value)   : return TokType.get("BOOL",     TokType["UNKNOWN"])
-        elif _is_block(value)  : return TokType.get("BLOCK",    TokType["UNKNOWN"])
-        elif _is_loop(value)   : return TokType.get("LOOP",     TokType["UNKNOWN"])
-        elif _is_kword(value)  : return TokType.get("KWORD",    TokType["UNKNOWN"])
-        elif _is_func(value)   : return TokType.get("FUNC",     TokType["UNKNOWN"])
-        elif _is_class(value)  : return TokType.get("CLASS",    TokType["UNKNOWN"])
-        elif _is_incl(value)   : return TokType.get("INCL",     TokType["UNKNOWN"])
-        elif _is_name(value)   : return TokType.get("NAME",     TokType["UNKNOWN"])
-        return TokType["UNKNOWN"]
+        if   _is_dchar(value)  : 
+            return Tok_t.get(value, Tok_t["UNKNOWN"])
+        elif _is_schar(value)  : 
+            return Tok_t.get(value, Tok_t["UNKNOWN"])
+        elif _is_int(value)    : 
+            return Tok_t.get("INT", Tok_t["UNKNOWN"])
+        elif _is_float(value)  : 
+            return Tok_t.get("FLOAT", Tok_t["UNKNOWN"])
+        elif _is_str(value)    : 
+            return Tok_t.get("STR", Tok_t["UNKNOWN"])
+        elif _is_char(value)   : 
+            return Tok_t.get("CHAR", Tok_t["UNKNOWN"])
+        elif _is_bool(value)   : 
+            return Tok_t.get("BOOL", Tok_t["UNKNOWN"])
+        elif _is_block(value)  : 
+            return Tok_t.get("BLOCK", Tok_t["UNKNOWN"])
+        elif _is_loop(value)   : 
+            return Tok_t.get("LOOP", Tok_t["UNKNOWN"])
+        elif _is_kword(value)  : 
+            return Tok_t.get("KWORD", Tok_t["UNKNOWN"])
+        elif _is_func(value)   : 
+            return Tok_t.get("FUNC", Tok_t["UNKNOWN"])
+        elif _is_class(value)  : 
+            return Tok_t.get("CLASS", Tok_t["UNKNOWN"])
+        elif _is_incl(value)   : 
+            return Tok_t.get("INCL", Tok_t["UNKNOWN"])
+        elif _is_name(value)   : 
+            return Tok_t.get("NAME", Tok_t["UNKNOWN"])
+        return Tok_t["UNKNOWN"]
 
     def tokenize(self, code: str) -> list:
         tokens: list[Token] = []
@@ -112,249 +126,137 @@ class Lexer:
 
         return tokens
 
+class Space():
+    def __init__(self, _name: str="", parent: "SpaceEnv"=None):
+        self._name = _name
+        self._parent = parent
+
+        self._var: dict[str, ValueNode] = dict()
+        self._const: dict[str, ValueNode] = dict()
+
+        self._func: dict[str, FuncNode] = dict()
+        self._struct: dict[str, StructNode] = dict()
+        self._space: dict[str, SpaceNode] = dict()
+
+    def var_def(self, name: str, value: Vts): 
+        if name in self._const: raise SyntaxError(f"Var '{name}' is already defined as a const.")
+        self._var[name] = value
+    def const_def(self, name: str, value: Vts): 
+        if name in self._var: raise SyntaxError(f"Const '{name}' is already defined as a var.")
+        self._const[name] = value
+    def func_def(self, func: FuncNode): 
+        self._func[func.name] = func
+    def struct_def(self, struct: StructNode): 
+        self._struct[struct.name] = struct
+    def space_def(self, space: SpaceNode): 
+        self._space[space.name] = space
+
+    def get(self, name: str) -> BaseNode:
+        try:
+            if name in self._var: return self._get_var(name=name)
+            elif name in self._const: return self._get_const(name=name)
+            elif name in self._func: return self._get_func(name=name)
+            elif name in self._struct: return self._get_struct(name=name)
+            elif name in self._space: return self._get_space(name=name)
+            raise NameError(f"Couldn't find '{name}' in '{self.name}' space")
+        except Exception as e: Reg.get("curr_tab").write(f"[Error] {e}")
+
+    def _get(self, name: str, attr: str, label: str):
+        storage = getattr(self, attr)
+        if name in storage: return storage[name]
+        if self._parent is not None: return getattr(self._parent, f"_get_{label}")(name)
+        raise NameError(f"Couldn't find '{name}' {label} in '{self._name}' space")
+
+    def _get_var(self, name: str) -> ValueNode: self._get(name, "_var", "var")
+    def _get_const(self, name: str) -> ValueNode: self._get(name, "_const", "const")
+    def _get_func(self, name: str) -> FuncNode: self._get(name, "_func", "func")
+    def _get_struct(self, name: str) -> StructNode: self._get(name, "_struct", "struct")
+    def _get_space(self, name: str) -> SpaceNode: self._get(name, "_space", "space")
+
+    def __repr__(self): return f"Space: {self._name}"
+
 class Parser():
-    def __init__(self):
-        self.idx = int()
-        self._know_func   : set = set()
-        self._know_var    : set = set()
-        self._know_const  : set = set()
-        self._know_struct : set = set()
-        self._know_space  : set = set()
+    def __init__(self): Reg.set("Parser", self)
 
-        Reg.set("Parser", self)
+    # --- tok ---
+    @property
+    def curr(self): return self.tokens[self.idx]
+    def adv(self, cnt: int=1) -> None: self.idx += cnt
+    def peek(self, cnt: int=0): return self.tokens[self.idx + cnt]
 
-    def adv(self, cnt: int=1): 
-        self.idx += cnt
-        if self.idx < len(self.tokens): return self.tokens[self.idx]
-    def curr(self): 
-        if self.idx < len(self.tokens): return self.tokens[self.idx]
-    def not_match(self, _type: int) -> bool:
-        if self.curr() is None: return True
-        return self.curr().type != _type
-    def peek(self, cnt: int=1): 
-        if self.idx + cnt < len(self.tokens): return self.tokens[self.idx + cnt]
+    def match(self, _type: int=255) -> bool: return self.curr and self.curr.type == _type
+    # -----------
 
-    def _process(self, tok: Token) -> BaseNode:
-        if tok.type in range(1, 6):
-            return self._value()
+    # --- env ---
+    @property
+    def curr_env(self): return self._envs[-1]
+    def mk_env(self, name: str="") -> None:
+        self.curr_env._space[name] = _env
+        _env = Space(_name=name, parent=self.curr_env)
+        self._envs.append(_env) 
+    def del_env(self) -> None: 
+        if len(self._envs) > 1: self._envs.pop()
+    # -----------
 
-        if tok.type == TokType["NAME"]:
+    # --- process ---
+    def _process(self, tok: Token):
+        if tok.type == Tok_t["NAME"]:
             try: 
-                if self.peek() and self.peek().type == TokType["("]: return self._call()
-                elif self.peek() and self.peek().type != TokType["."]: return self._var()
-            except SyntaxError as e:
-                Reg.get("curr_tab").write(f"[Error] {e}")
+                if self.peek().type == Tok_t["("]: return self._call()
+                elif self.peek().type == Tok_t["."]: return self._access()
+                else: return self._var()
+            except Exception as e: Reg.get("curr_tab").write(f"[Error] {e}")
 
-        if tok.value == "set" or tok.value == "const": 
-            try: return self._asg(tok.value)
-            except SyntaxError as e:
-                Reg.get("curr_tab").write(f"[Error] {e}")
+        if tok.value in ["set", "const"]:
+            try: return self._asg()
+            except Exception as e: Reg.get("curr_tab").write(f"[Error] {e}")
 
-        if tok.value == "func":
-            try: return self._func()
-            except SyntaxError as e:
-                Reg.get("curr_tab").write(f"[Error] {e}")
-
-        if tok.value == "struct":
-            pass
-
-        if tok.value == "space":
-            try: return self._space()
-            except SyntaxError as e:
-                Reg.get("curr_tab").write(f"[Error] {e}")
-
-    def _asg(self, asg_t: str) -> AsgNode:
-        self.adv()
-
-        if self.not_match(TokType["NAME"]):
-            raise SyntaxError("Expected var name after 'set', got name for var")
-        _name = self.curr().value
-        self.adv()
-
-        if self.not_match(TokType["="]):
-            raise SyntaxError("Expected '=' after var name, got '=' to assign value to var")
-        self.adv()
-
-        _value = self._process(self.curr())
-
-        if asg_t == "set" and _name not in self._know_var: 
-            self._know_var.add(_name)
-        elif asg_t == "const":
-            if _name in self._know_const: 
-                raise SyntaxError(f"Const var can't change value after assign") 
-            self._know_const.add(_name)
-
-        return AsgNode(_name, _value)
-
-    def _value(self) -> ValueNode:
-        if self.curr() is None: raise SyntaxError("Unexpected end of input while parsing value")
-
-        tok = self.curr()
-        if tok.type == TokType["INT"]:
-            return ValueNode(int(tok.value))
-        elif tok.type == TokType["FLOAT"]:
-            return ValueNode(float(tok.value))
-        elif tok.type == TokType["STR"]: # remove quotes
-            return ValueNode(str(tok.value[1:-1])) 
-        elif tok.type == TokType["CHAR"]: # remove quotes
-            return ValueNode(str(tok.value[1:-1]))
-        elif tok.type == TokType["BOOL"]:
-            return ValueNode(tok.value.lower() == "true")
-        else: raise SyntaxError(f"Expected a value, got {tok}")
-
-    def _block(self) -> BlockNode:
-        if self.not_match(TokType["{"]):
-            raise SyntaxError("Expected '{' to start block, got '{' to mark the start of block")
-        self.adv()
-        statements: list[BaseNode] = []
-
-        while self.curr() != None and self.not_match(TokType["}"]):
-            start_idx = self.idx
-            tok = self.curr()
-            # print(tok) # debug code
-
-            code = self._process(tok)
-            statements.append(code)
-
-        if self.curr() == None: raise SyntaxError("Expected '}' to end the block, got '}' to end the block")
-
-        return BlockNode(statements)
-
-    def _func(self) -> FuncNode:
-        self.adv()
-
-        if self.not_match(TokType["NAME"]):
-            raise SyntaxError("Expected func name after 'func', got name for func")
-        _name = self.curr().value
-        self.adv()
-
-        if self.not_match(TokType["("]):
-            raise SyntaxError("Expected '(' after func name, got '(' to mark the start of func params")
-        self.adv()
-
-        _params: list[str] = []
-        while self.curr() != None and self.curr().type != TokType[")"]:
-            if self.not_match(TokType["NAME"]):
-                raise SyntaxError("Expected param name, got name for param")
-            _params.append(self.curr().value)
-            self.adv()
-
-            if self.curr().type == TokType[","]: self.adv()
-            elif self.not_match(TokType[")"]):
-                raise SyntaxError("Expected ',' or ')' in param list, got ',' of ')'")
+    def _asg(self) -> BaseNode:
+        if self.curr.value == "set": _mode = "set"
+        elif self.curr.value == "const": _mode = "const"
 
         self.adv()
-
-        _body = self._block()
-
-        if _name not in self._know_func: self._know_func.add(_name)
-        else: raise SyntaxError(f"'{_name}' func had been definition")
-
-        return FuncNode(_name, _params, _body)
-
-    def _space(self) -> BlockNode:
-        _name = self.curr().value; self.adv()
-
-        if self.not_match(TokType["{"]):
-            raise SyntaxError("Expected '{' to start space, got '{' to mark the start of space")
+        if self.curr.type != Tok_t["NAME"]:
+            raise SyntaxError(f"Expected var name to assign the var")
+        _name = self.curr.value
         self.adv()
-        statements: list[BaseNode] = []
-
-        while self.curr() != None and self.not_match(TokType["}"]):
-            tok = self.curr()
-            code = self._process(tok)
-            statements.append(code)
-            self.adv()
-
-        if self.curr() == None: raise SyntaxError("Expected '}' to end the space, got '}' to end the space")
-
-        self._know_space.add(_name)
-
-        return BlockNode(statements)
-
-    def _struct(self) -> StructNode:
-        self.adv()
-
-        if self.not_match(TokType["NAME"]):
-            raise SyntaxError("Expected struct name, got name for struct")
-        _name = self.curr().value
-        self.adv()
-
-        if self.not_match(TokType["{"]):
-            raise SyntaxError("Expected '{' to start struct, got '{' to mark the start of struct")
-        self.adv()
-
-        var_block: dict[str, str] = dict()
-
-        while self.curr() != None and self.not_match(TokType["}"]):
-            
-            _type = self.curr().value
-            self.adv()
-            if self.not_match(TokType[":"]):
-                raise SyntaxError("Expected ':' to devide type and name, got ':' to divide")
-            self.adv()
-            if self.not_match(TokType["NAME"]):
-                raise SyntaxError("The name is expected or wrong, please change or add name for it")
-            _var_name = self.curr().value
-            self.adv()
-
-            var_block[_var_name] = _type
-
-        if self.curr() == None: raise SyntaxError("Expected '}' to end the struct, got '}' to end the struct")
-
-        return StructNode(_name, var_block)
-
-    def _var(self) -> VarNode:
-        _name = self.curr().value; self.adv()
-        if _name not in self._know_var or _name not in self._know_const:
-            raise SyntaxError(f"'{_name}' var doesn't have definition")
-        return VarNode(_name)
-
-    def _call(self) -> CallNode:
-        _name = self.curr().value
-        if _name not in self._know_func: 
-            raise SyntaxError(f"'{_name}' func doesn't have definition")
-        self.adv()
-
-        if self.not_match(TokType["("]):
-            raise SyntaxError(f"Expected '(' to start of args, got '(' to mark start of arg")
-        self.adv()
-
-        _args: list[BaseNode] = []
-        while self.not_match(TokType[")"]):
-            arg = self._process(self.curr())
-            _args.append(arg)
-            self.adv()
-
-            if self.curr().type == TokType[","]: self.adv()
-            elif self.not_match(TokType[")"]):
-                raise SyntaxError("Expected ',' or ')' in arg list, got ',' or ')'")
-
-        self.adv()
-        return CallNode(_name, _args)
-
-    def parse(self, tokens: list[Token]) -> BlockNode:
-        self.tokens = tokens
-        self.idx = 0
-        statements = []
         
-        while self.idx < len(self.tokens):
-            tok = self.curr()
-            if tok is None: break
-            if tok.value in (";", "\n"):
+        valid_ops = ["=", "+=", "-=", "*=", "/=", "%="]
+        if self.curr.type in valid_ops:
+            raise SyntaxError(f"Expected '=' to assign the var")
+        self.adv()
+
+        tok = self.curr
+        _value = self._process(tok)
+
+        return AsgNode(name=_name, value=_value)
+
+    def _func(self) -> BaseNode: ...
+    def _struct(self) -> BaseNode: ...
+    def _space(self) -> BaseNode: ...
+    def _if(self) -> BaseNode: ...
+    def _loop(self) -> BaseNode: ...
+
+    def _call(self): ...
+    def _access(self): ...
+    def _var(self): ...
+    # ---------------
+
+    def parse(self, tokens: list[Token]) -> Space:
+        self.tokens = tokens; self.idx = -1
+
+        self._envs: list[Space] = [Space(_name="global")]
+
+        while self.idx < len(self.tokens) - 1:
+            tok = self.curr
+            if tok.value in [';', '\n']:
                 self.adv(); continue
-            node = self._process(tok)
-            if node: statements.append(node)
-            self.adv()
-                
-        return BlockNode(statements)
+
+            code = self._process(tok)
+            
 
 def analyze(code: str) -> list:
-    tokens = Reg.get("Lexer").tokenize(code=code)
-    print(tokens) # debug code
-    AST_root = Reg.get("Parser").parse(tokens=tokens)
-
-    return AST_root
+    pass
 
 if __name__ == "__main__":
     print("This is a module, not a script. Please import it to use.")

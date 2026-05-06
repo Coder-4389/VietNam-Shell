@@ -70,6 +70,7 @@ class _Terminal(ctk.CTkTextbox):
         self.insert("end", _make_prompt(self.path))
         self.mark_set("lockpos", "end-1c")
         self.mark_gravity("lockpos", "left")
+        self.mark_set("insert", "end-1c")
         self.see("end")
 
         return "break"
