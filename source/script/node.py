@@ -1,9 +1,12 @@
+# app module
+from source.script.typedef import Vtype
+
 class BaseNode(): 
     def __init__(self): ...
     def __repr__(self): ...
 
 class ValueNode(BaseNode):
-    def __init__(self, value: any=None, _type: int=None): 
+    def __init__(self, value: any=None, _type: Vtype=None): 
         self.value = value
         self.type = _type
     def __repr__(self): 
@@ -39,7 +42,7 @@ class FuncNode(BaseNode):
         return f"Func: {self.name}({', '.join(self.params)}) {self.body}"
 
 class ReturnNode(BaseNode):
-    def __init__(self, value: BaseNode=None, _type: int=None):
+    def __init__(self, value: BaseNode=None, _type: Vtype=None):
         self.value = value
         self.type = _type
     def __repr__(self): 
@@ -77,7 +80,7 @@ class LoopNode(BaseNode):
         return f"Loop: while ({self.condition}) {self.body}"
 
 class StructNode(BaseNode):
-    def __init__(self, name: str, list_item: dict[str, str]|None=None):
+    def __init__(self, name: str, list_item: dict[str, Vtype]|None=None):
         self.name = name
         if list_item is None: self.l_item = {}
         else: self.l_item = list_item
@@ -92,7 +95,7 @@ class CallNode(BaseNode):
         return f"Call: {self.name}({', '.join(map(str, self.args))})"
 
 class VarNode(BaseNode):
-    def __init__(self, name: str="", value: BaseNode=None, _type: int=None):
+    def __init__(self, name: str="", value: BaseNode=None, _type: Vtype=None):
         self.name = name
         self.value = value
         self.type = _type
@@ -106,7 +109,3 @@ class AccessNode(BaseNode):
         self.data = data
     def __repr__(self):
         return f"From {self.space} space: use {self.object} ({self.data})"
-
-if __name__ == "__main__":
-    print("[info]: This file only for import.")
-    input("Press Enter to exit...")

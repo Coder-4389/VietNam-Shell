@@ -49,11 +49,9 @@ def setup():
     _load("data/keywords.json")
     _load("data/msg.json")
 
-class Process():
+class Core():
     def __init__(self): 
-        # Call all processing object
-        src.Lexer()
-        src.Parser()
+        src.analyzer_setup()
 
         # Global self with app's registry
         Reg.set("Process", self)
@@ -94,4 +92,7 @@ class UI(ctk.CTk):
 
 if __name__ == "__main__":
     setup()
-    if Process(): UI()
+
+    # call main app
+    Core() # process code
+    UI() # user interface

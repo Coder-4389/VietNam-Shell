@@ -1,7 +1,15 @@
-*.os
-*.dll
+# --- python ---
+*/__pycache__
 
-__pycache__/
-*.py[cod]
+*.pyc
+*.pyd
+# --------------
 
-*.bak
+# --- C/C++ ---
+/build
+
+# -------------
+
+# --- common ---
+*/dist
+# --------------
