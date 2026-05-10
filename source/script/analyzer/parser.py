@@ -8,10 +8,9 @@ from source.registry import Reg
 from source.script.node import *
 from source.script.token import *
 from source.script.typedef import *
-from source.script.analyzer.envdef import Environment
 
 # analyzer modules
-from source.script.analyzer.checker import *
+from source.script.analyzer.context import *
 
 class Parser():
     def __init__(self): Reg.set("Parser", self)
@@ -193,7 +192,7 @@ class Parser():
         if not self.match(Tok_t["("]): raise SyntaxErr("Expected '(' after function name")
         self.adv()
 
-        _node = FuncNode(name=_name, params=None, body=None)
+        _node = FuncNode(name=_name, params=[], body=None)
         self.curr_env.func_def(_node)
 
         params: list[str] = []

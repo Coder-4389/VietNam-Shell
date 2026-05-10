@@ -4,10 +4,26 @@ import sys, os
 # Registry
 from source.registry import Reg
 
-# script modules
+# app modules
 from source.script.node import *
 from source.script.token import *
 from source.script.typedef import *
+
+class BaseErr(BaseException):
+    def __init__(self, _type: str=None, _info: str=None):
+        super().__init__()
+        self.err_type = _type; self.err_info = _info
+
+    def __str__(self): return f"[Error] {self.err_type}: {self.err_info}"
+
+class NameErr(BaseErr):
+    def __init__(self, _info: str=None): super().__init__("NameError", _info)
+class SyntaxErr(BaseErr):
+    def __init__(self, _info: str=None): super().__init__("SyntaxError", _info)
+class TypeErr(BaseErr):
+    def __init__(self, _info: str=None): super().__init__("TypeError", _info)
+class UnknowErr(BaseErr):
+    def __init__(self, _info: str=None): super().__init__("UnknownError", _info)
 
 class Environment():
     def __init__(self, _name: str="", parent: "SpaceEnv"=None):
@@ -22,10 +38,10 @@ class Environment():
         self._space: dict[str, SpaceNode] = dict()
 
     def var_def(self, name: str, _type: Vtype): 
-        if name in self._const: raise SyntaxError("Var name can't be like const name")
+        if name in self._const: raise NameErr("Var name can't be like const name")
         self._var[name] = _type
     def const_def(self, name: str, _type: Vtype):
-        if name in self._const: raise SyntaxError("Const can't change value after defined")
+        if name in self._const: raise NameErr("Const can't change value after defined")
         self._const[name] = _type
     def func_def(self, func: FuncNode): self._func[func.name] = func
     def struct_def(self, struct: StructNode): self._struct[struct.name] = struct
@@ -53,4 +69,4 @@ class Environment():
     def _get_struct(self, name: str) -> StructNode: self._get(name, "_struct", "struct")
     def _get_space(self, name: str) -> SpaceNode: self._get(name, "_space", "space")
 
-    def __repr__(self): return f"Space: {self._name}"
+    def __repr__(self): return f"Environment: {self._name}"
