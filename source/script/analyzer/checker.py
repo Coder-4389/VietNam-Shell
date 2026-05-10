@@ -6,7 +6,7 @@ from source.script.node import *
 from source.script.token import *
 from source.script.typedef import *
 
-class VBaseErr(BaseException):
+class BaseErr(BaseException):
     def __init__(self,
         _type: str=None,
         _info: str=None,
@@ -18,18 +18,18 @@ class VBaseErr(BaseException):
     def __str__(self):
         return f"[Error] {self.err_type}: {self.err_info}"
 
-class VNameErr(VBaseErr):
+class NameErr(BaseErr):
     def __init__(self, _info: str=None): 
         super().__init__("NameError", _info)
 
-class VSyntaxErr(VBaseErr):
+class SyntaxErr(BaseErr):
     def __init__(self, _info: str=None): 
         super().__init__("SyntaxError", _info)
 
-class VTypeErr(VBaseErr):
+class TypeErr(BaseErr):
     def __init__(self, _info: str=None): 
         super().__init__("TypeError", _info)
 
-class VUnknownErr(VBaseErr):
+class UnknowErr(BaseErr):
     def __init__(self, _info: str=None): 
         super().__init__("UnknownError", _info)

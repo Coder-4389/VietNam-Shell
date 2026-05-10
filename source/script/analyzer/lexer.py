@@ -13,7 +13,7 @@ from source.script.typedef import *
 
 def _kword_load() -> list[str]:
     listed_keywords: list[str] = []
-    for group in Reg.get("keywords").values():
+    for group in Reg.get("keywords").values(): 
         for kw in group: listed_keywords.append(kw)
 
     return listed_keywords
@@ -34,24 +34,19 @@ class Lexer:
             _char = code[i]
             start_pos = self.pos.copy()
 
-            if _char.isspace():
-                self.pos.adv(_char); i += 1
-                continue
+            if _char.isspace(): self.pos.adv(_char); i += 1; continue
 
             if _char == '"':
                 start = i
                 self.pos.adv(code[i]); i += 1
-                while i < len(code) and code[i] != '"':
-                    self.pos.adv(code[i]); i += 1
-                if i < len(code):
-                    self.pos.adv(code[i]); i += 1
+                while i < len(code) and code[i] != '"': self.pos.adv(code[i]); i += 1
+                if i < len(code): self.pos.adv(code[i]); i += 1
                 yield (code[start:i], start_pos)
                 continue
 
             if _char.isalnum() or _char == '_':
                 start = i
-                while i < len(code) and (code[i].isalnum() or code[i] == '_'):
-                    self.pos.adv(code[i]); i += 1
+                while i < len(code) and (code[i].isalnum() or code[i] == '_'): self.pos.adv(code[i]); i += 1
                 yield (code[start:i], start_pos)
                 continue
 

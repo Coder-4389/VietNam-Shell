@@ -79,7 +79,7 @@ class Parser():
         return left_val
 
     def _value(self) -> BaseNode:
-        if not self.curr: raise VSyntaxErr("Expected expression")
+        if not self.curr: raise SyntaxErr("Expected expression")
         tok = self.curr
         if tok.value in ("not", "-", "+"):
             self.adv()
@@ -88,8 +88,7 @@ class Parser():
         if tok.value == "(":
             self.adv()
             node = self._expr()
-            if not self.curr or self.curr.value != ")":
-                raise VSyntaxErr("Missing closing parenthesis ')'")
+            if not self.curr or self.curr.value != ")": raise SyntaxErr("Missing closing parenthesis ')'")
             self.adv()
             return node
 
@@ -102,13 +101,11 @@ class Parser():
         }
 
         if tok.type in value_map:
-            converter, _type = value_map[tok.type]
-            self.adv() 
+            converter, _type = value_map[tok.type]; self.adv() 
             return ValueNode(value=converter(tok.value), _type=_type)
 
         if self.match(Tok_t["NAME"]):
-            node = self._ref(tok) 
-            self.adv()
+            node = self._ref(tok); self.adv()
             return node
 
         raise VunknownErr(f"Unexpected token: {tok.value}")
@@ -116,32 +113,28 @@ class Parser():
     def _cond(self) -> BaseNode: 
         cond_node = self._expr(mopl=-3)
         if self.curr and self.curr.value == "{": return cond_node
-        raise VSyntaxErr("Missing '{' after condition")
+        raise SyntaxErr("Missing '{' after condition")
 
     def _block(self) -> BaseNode: 
-        if not self.match(Tok_t["{"]):
-            raise VSyntaxErr("Missing '{' before block")
+        if not self.match(Tok_t["{"]): raise SyntaxErr("Missing '{' before block")
         self.adv()
         
         statements: list[BaseNode] = list()
 
         while self.idx < len(self.tokens) and not self.match(Tok_t["}"]):
             if self.curr.value in [';', '\n']:
-                self.adv()
-                continue
+                self.adv(); continue
 
             tok = self.curr
             try:
-                if self.match(Tok_t["NAME"]): 
-                    node = self._ref(tok)
+                if self.match(Tok_t["NAME"]): node = self._ref(tok)
                 else: node = self._define(tok)
                 if node: statements.append(node)
-            except VBaseErr as e:
+            except BaseErr as e:
                 Reg.get("curr_tab").write(f"[Block Error] {e}")
                 self.adv()
 
-        if not self.match(Tok_t["}"]):
-            raise VSyntaxErr("Missing '}' after block")
+        if not self.match(Tok_t["}"]): raise SyntaxErr("Missing '}' after block")
         self.adv() 
 
         return BlockNode(statements=statements)
@@ -175,14 +168,12 @@ class Parser():
         elif self.curr.value == "const": _mode = "const"
 
         self.adv()
-        if self.curr.type != Tok_t["NAME"]:
-            raise VSyntaxErr(f"Expected var name to assign the var")
+        if self.curr.type != Tok_t["NAME"]: raise SyntaxErr(f"Expected var name to assign the var")
         _name = self.curr.value
         self.adv()
         
         valid_ops = ["=", "+=", "-=", "*=", "/=", "%="]
-        if self.curr.value not in valid_ops:
-            raise VSyntaxErr(f"Expected '=' to assign the var")
+        if self.curr.value not in valid_ops: raise SyntaxErr(f"Expected '=' to assign the var")
         self.adv()
 
         tok = self.curr
@@ -195,13 +186,11 @@ class Parser():
     def _func(self) -> BaseNode: 
         self.adv()
 
-        if not self.match(Tok_t["NAME"]):
-            raise VSyntaxErr("Expected function name")
+        if not self.match(Tok_t["NAME"]): raise SyntaxErr("Expected function name")
         _name = self.curr.value
         self.adv()
 
-        if not self.match(Tok_t["("]):
-            raise VSyntaxErr("Expected '(' after function name")
+        if not self.match(Tok_t["("]): raise SyntaxErr("Expected '(' after function name")
         self.adv()
 
         _node = FuncNode(name=_name, params=None, body=None)
@@ -211,8 +200,7 @@ class Parser():
         self.in_env(name=_name)
 
         while self.idx < len(self.tokens) and not self.match(Tok_t[")"]):
-            if not self.match(Tok_t["NAME"]):
-                raise VSyntaxErr("Expected parameter name")
+            if not self.match(Tok_t["NAME"]): raise SyntaxErr("Expected parameter name")
             _param_name = self.curr.value
             params.append(_param_name)
             self.adv()
@@ -222,8 +210,7 @@ class Parser():
 
             self.curr_env.var_def(name=_param_name, _type=Vtype(kind=Base_ts, name="NONE"))
 
-        if not self.match(Tok_t[")"]):
-            raise VSyntaxErr("Expected ')' after parameters")
+        if not self.match(Tok_t[")"]): raise SyntaxErr("Expected ')' after parameters")
         self.adv()
 
         _node.body = self._block()
@@ -235,13 +222,11 @@ class Parser():
     def _struct(self) -> BaseNode: 
         self.adv()
 
-        if not self.match(Tok_t["NAME"]):
-            raise VSyntaxErr("Expected struct name")
+        if not self.match(Tok_t["NAME"]): raise SyntaxErr("Expected struct name")
         _name = self.curr.value
         self.adv()
 
-        if not self.match(Tok_t["{"]):
-            raise VSyntaxErr("Expected '{' after struct name")
+        if not self.match(Tok_t["{"]): raise SyntaxErr("Expected '{' after struct name")
         self.adv()
 
         members: dict[str, Vtype]= dict()
@@ -250,19 +235,15 @@ class Parser():
             if self.curr.value in [';', '\n']:
                 self.adv(); continue
 
-            if not self.match(Tok_t["NAME"]):
-                raise VSyntaxErr("Expected member name")
+            if not self.match(Tok_t["NAME"]): raise SyntaxErr("Expected member name")
             _name_member = self.curr.value
             self.adv()
 
-            if not self.match(Tok_t[":"]):
-                raise VSyntaxErr("Expected ':' after member name")
+            if not self.match(Tok_t[":"]): raise SyntaxErr("Expected ':' after member name")
             self.adv()
 
+            if self.curr.value not in Vts: raise SyntaxErr(f"Unknown type '{_type_member}'")
             _type_member = self.curr.value
-
-            if _type_member not in Vts:
-                raise VSyntaxErr(f"Unknown type '{_type_member}'")
             self.adv()
 
             members[_name_member] = vts[_type_member]
@@ -270,8 +251,7 @@ class Parser():
             if self.match(Tok_t[","]): 
                 self.adv()
 
-        if not self.match(Tok_t["}"]):
-            raise VSyntaxErr("Expected '}' after members")
+        if not self.match(Tok_t["}"]): raise SyntaxErr("Expected '}' after members")
         self.adv()
 
         self.curr_env.struct_def(StructNode(name=_name, list_item=members))
@@ -280,8 +260,7 @@ class Parser():
     def _space(self) -> BaseNode: 
         self.adv()
 
-        if not self.match(Tok_t["NAME"]):
-            raise VSyntaxErr("Expected space name")
+        if not self.match(Tok_t["NAME"]): raise SyntaxErr("Expected space name")
         _name = self.curr.value
         self.adv()
 
@@ -292,22 +271,20 @@ class Parser():
         self.curr_env.space_def(SpaceNode(name=_name, statements=_body))
         return SpaceNode(name=_name, statements=_body)
 
-    def _use(self):
+    def _use(self) -> BaseNode:
         self.adv()
 
-        if not self.match(Tok_t["NAME"]):
-            raise VSyntaxErr("Expected use name")
+        if not self.match(Tok_t["NAME"]): raise SyntaxErr("Expected use name")
         _name = self.curr.value
         self.adv()
 
         if self.curr.value == "as":
             self.adv()
-            if not self.match(Tok_t["NAME"]):
-                raise VSyntaxErr("Expected use name")
+            if not self.match(Tok_t["NAME"]): raise SyntaxErr("Expected use name")
             _name = self.curr.value
             self.adv()
 
-        _node = SpaceNode(name=_name, statements=N)
+        _node = SpaceNode(name=_name, statements=None)
         self.curr_env.space_def(_node)
         return _node
 
@@ -315,7 +292,7 @@ class Parser():
         if self.peek().type == Tok_t["("]: return self._call()
         elif self.peek().type == Tok_t["."]: return self._access()
         else: return self._var()
-        raise VUnknownErr(f"Unexpected token: {tok.value}")
+        raise UnknowErr(f"Unexpected token: {tok.value}")
 
     def _call(self): ...
     def _access(self): ...
@@ -345,8 +322,7 @@ class Parser():
                 if self.match(Tok_t["NAME"]): node = self._ref(start_tok)
                 else: node = self._define(start_tok)
                 if node: ast.append(node)
-            except VBaseErr as e:
-                Reg.get("curr_tab").write(e) 
-                break
+            except BaseErr as e: Reg.get("curr_tab").write(e); break
+            except KeyboardInterrupt: sys.exit(0)
 
         return ast
