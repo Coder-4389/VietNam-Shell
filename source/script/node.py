@@ -31,10 +31,10 @@ class BlockNode(BaseNode):
     def __init__(self, statements: list[BaseNode]=[]):
         self.statements = statements
     def __repr__(self): 
-        return "Block: {\n" + "\n".join(map(str, self.statements)) + "\n}"
+        return "{\n" + "\n".join(map(str, self.statements)) + "\n}"
 
 class FuncNode(BaseNode):
-    def __init__(self, name: str="", params: list[str]=[], body: list[BaseNode]=None):
+    def __init__(self, name: str="", params: list[str]=[], body: BlockNode=None):
         self.name = name
         self.params = params
         self.body = body
@@ -49,11 +49,11 @@ class ReturnNode(BaseNode):
         return f"Return: {self.value}"
 
 class SpaceNode(BaseNode):
-    def __init__(self, name, statements: list[BaseNode]=[]):
+    def __init__(self, name, statements: BlockNode=None):
         self.name = name
         self.statements = statements
     def __repr__(self): 
-        return f"{self.name} Space: "+"{\n"+"\n".join(map(str, self.statements))+"\n}"
+        return f"{self.name} Space: "+str(self.statements)
 
 class CondNode(BaseNode):
     def __init__(self, left: BaseNode, op: str, right: BaseNode):

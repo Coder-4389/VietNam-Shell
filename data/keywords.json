@@ -2,7 +2,7 @@
     "Block-Code": [
         "if", "elif", "else", 
         "for", "while", "break",
-        "use"
+        "use", "as"
     ],
     "Execute-Code": [
         "print", "input"

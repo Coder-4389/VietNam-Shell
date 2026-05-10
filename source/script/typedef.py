@@ -10,6 +10,7 @@ class Vtype():
 
 
 class BaseTypes(Enum):
+    NONE = auto()
     INT = auto()
     FLOAT = auto()
     STR = auto()
@@ -17,8 +18,6 @@ class BaseTypes(Enum):
     BOOL = auto() 
 
     ANY = auto()
-        
-
 
 class UDTs():
     _structs: dict[str, any] = dict()
@@ -37,7 +36,7 @@ Base_ts = 0
 Udef_ts = 1
 
 @property
-def vts():
+def vts() -> dict[str, Vtype]:
     global Base_ts, Udef_ts
     
     combined = {

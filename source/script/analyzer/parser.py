@@ -10,13 +10,17 @@ from source.script.token import *
 from source.script.typedef import *
 from source.script.analyzer.envdef import Environment
 
+# analyzer modules
+from source.script.analyzer.checker import *
 
 class Parser():
     def __init__(self): Reg.set("Parser", self)
 
     # --- tok ---
     @property
-    def curr(self): return self.tokens[self.idx]
+    def curr(self) -> Token: 
+        try: return self.tokens[self.idx]
+        except: return Token()
     def adv(self, cnt: int=1) -> None: self.idx += cnt
     def peek(self, cnt: int=0): return self.tokens[self.idx + cnt]
 
@@ -75,7 +79,7 @@ class Parser():
         return left_val
 
     def _value(self) -> BaseNode:
-        if not self.curr: raise SyntaxError("Expected expression")
+        if not self.curr: raise VSyntaxErr("Expected expression")
         tok = self.curr
         if tok.value in ("not", "-", "+"):
             self.adv()
@@ -85,7 +89,7 @@ class Parser():
             self.adv()
             node = self._expr()
             if not self.curr or self.curr.value != ")":
-                raise SyntaxError("Missing closing parenthesis ')'")
+                raise VSyntaxErr("Missing closing parenthesis ')'")
             self.adv()
             return node
 
@@ -103,20 +107,20 @@ class Parser():
             return ValueNode(value=converter(tok.value), _type=_type)
 
         if self.match(Tok_t["NAME"]):
-            node = self._use(tok) 
+            node = self._ref(tok) 
             self.adv()
             return node
 
-        raise SyntaxError(f"Unexpected token: {tok.value}")
+        raise VunknownErr(f"Unexpected token: {tok.value}")
 
     def _cond(self) -> BaseNode: 
         cond_node = self._expr(mopl=-3)
         if self.curr and self.curr.value == "{": return cond_node
-        raise SyntaxError("Missing '{' after condition")
+        raise VSyntaxErr("Missing '{' after condition")
 
     def _block(self) -> BaseNode: 
         if not self.match(Tok_t["{"]):
-            raise SyntaxError("Missing '{' before block")
+            raise VSyntaxErr("Missing '{' before block")
         self.adv()
         
         statements: list[BaseNode] = list()
@@ -129,15 +133,15 @@ class Parser():
             tok = self.curr
             try:
                 if self.match(Tok_t["NAME"]): 
-                    node = self._use(tok)
+                    node = self._ref(tok)
                 else: node = self._define(tok)
                 if node: statements.append(node)
-            except Exception as e:
+            except VBaseErr as e:
                 Reg.get("curr_tab").write(f"[Block Error] {e}")
                 self.adv()
 
         if not self.match(Tok_t["}"]):
-            raise SyntaxError("Missing '}' after block")
+            raise VSyntaxErr("Missing '}' after block")
         self.adv() 
 
         return BlockNode(statements=statements)
@@ -172,13 +176,13 @@ class Parser():
 
         self.adv()
         if self.curr.type != Tok_t["NAME"]:
-            raise SyntaxError(f"Expected var name to assign the var")
+            raise VSyntaxErr(f"Expected var name to assign the var")
         _name = self.curr.value
         self.adv()
         
         valid_ops = ["=", "+=", "-=", "*=", "/=", "%="]
         if self.curr.value not in valid_ops:
-            raise SyntaxError(f"Expected '=' to assign the var")
+            raise VSyntaxErr(f"Expected '=' to assign the var")
         self.adv()
 
         tok = self.curr
@@ -192,45 +196,52 @@ class Parser():
         self.adv()
 
         if not self.match(Tok_t["NAME"]):
-            raise SyntaxError("Expected function name")
+            raise VSyntaxErr("Expected function name")
         _name = self.curr.value
         self.adv()
 
         if not self.match(Tok_t["("]):
-            raise SyntaxError("Expected '(' after function name")
+            raise VSyntaxErr("Expected '(' after function name")
         self.adv()
 
+        _node = FuncNode(name=_name, params=None, body=None)
+        self.curr_env.func_def(_node)
+
         params: list[str] = []
+        self.in_env(name=_name)
 
         while self.idx < len(self.tokens) and not self.match(Tok_t[")"]):
             if not self.match(Tok_t["NAME"]):
-                raise SyntaxError("Expected parameter name")
+                raise VSyntaxErr("Expected parameter name")
             _param_name = self.curr.value
             params.append(_param_name)
             self.adv()
 
-            if self.match(Tok_t[","]): self.adv()
-            else: break
+            if self.match(Tok_t[","]): 
+                self.adv()
+
+            self.curr_env.var_def(name=_param_name, _type=Vtype(kind=Base_ts, name="NONE"))
 
         if not self.match(Tok_t[")"]):
-            raise SyntaxError("Expected ')' after parameters")
+            raise VSyntaxErr("Expected ')' after parameters")
         self.adv()
 
-        _body = self._block()
+        _node.body = self._block()
+        _node.params = params
 
-        self.curr_env.func_def(FuncNode(name=_name, params=params, body=_body))
-        return FuncNode(name=_name, params=params, body=_body)
+        self.out_env()
+        return _node
 
     def _struct(self) -> BaseNode: 
         self.adv()
 
         if not self.match(Tok_t["NAME"]):
-            raise SyntaxError("Expected struct name")
+            raise VSyntaxErr("Expected struct name")
         _name = self.curr.value
         self.adv()
 
         if not self.match(Tok_t["{"]):
-            raise SyntaxError("Expected '{' after struct name")
+            raise VSyntaxErr("Expected '{' after struct name")
         self.adv()
 
         members: dict[str, Vtype]= dict()
@@ -240,35 +251,71 @@ class Parser():
                 self.adv(); continue
 
             if not self.match(Tok_t["NAME"]):
-                raise SyntaxError("Expected member name")
+                raise VSyntaxErr("Expected member name")
             _name_member = self.curr.value
             self.adv()
 
             if not self.match(Tok_t[":"]):
-                raise SyntaxError("Expected ':' after member name")
+                raise VSyntaxErr("Expected ':' after member name")
             self.adv()
 
             _type_member = self.curr.value
 
             if _type_member not in Vts:
-                raise SyntaxError(f"Unknown type '{_type_member}'")
+                raise VSyntaxErr(f"Unknown type '{_type_member}'")
             self.adv()
 
-            members[_name_member] = Vts[_type_member]
+            members[_name_member] = vts[_type_member]
 
             if self.match(Tok_t[","]): 
                 self.adv()
 
+        if not self.match(Tok_t["}"]):
+            raise VSyntaxErr("Expected '}' after members")
+        self.adv()
+
+        self.curr_env.struct_def(StructNode(name=_name, list_item=members))
         return StructNode(name=_name, list_item=members)
 
-    def _space(self) -> BaseNode: ...
+    def _space(self) -> BaseNode: 
+        self.adv()
 
+        if not self.match(Tok_t["NAME"]):
+            raise VSyntaxErr("Expected space name")
+        _name = self.curr.value
+        self.adv()
 
-    def _use(self, tok: Token) -> BaseNode: 
+        self.in_env(name=_name)
+        _body = self._block()
+        self.out_env()
+
+        self.curr_env.space_def(SpaceNode(name=_name, statements=_body))
+        return SpaceNode(name=_name, statements=_body)
+
+    def _use(self):
+        self.adv()
+
+        if not self.match(Tok_t["NAME"]):
+            raise VSyntaxErr("Expected use name")
+        _name = self.curr.value
+        self.adv()
+
+        if self.curr.value == "as":
+            self.adv()
+            if not self.match(Tok_t["NAME"]):
+                raise VSyntaxErr("Expected use name")
+            _name = self.curr.value
+            self.adv()
+
+        _node = SpaceNode(name=_name, statements=N)
+        self.curr_env.space_def(_node)
+        return _node
+
+    def _ref(self, tok: Token) -> BaseNode: 
         if self.peek().type == Tok_t["("]: return self._call()
         elif self.peek().type == Tok_t["."]: return self._access()
         else: return self._var()
-        raise SyntaxError(f"Unexpected token: {tok.value}")
+        raise VUnknownErr(f"Unexpected token: {tok.value}")
 
     def _call(self): ...
     def _access(self): ...
@@ -284,26 +331,22 @@ class Parser():
         ast: list[BaseNode] = []
 
         while self.idx < len(self.tokens):
-            if self.curr.value in [";", "\n"]:
-                self.adv()
-                continue
+            if self.match(Tok_t[";"]):
+                self.adv(); continue
 
             # start_tok = self.curr 
             # if self.match(Tok_t["NAME"]): node = self._use(start_tok)
             # else: node = self._define(start_tok)
             # if node: ast.append(node)
-            # debug code
+            # # debug code
 
             try:
                 start_tok = self.curr 
-                if self.match(Tok_t["NAME"]): node = self._use(start_tok)
+                if self.match(Tok_t["NAME"]): node = self._ref(start_tok)
                 else: node = self._define(start_tok)
                 if node: ast.append(node)
-            except Exception as e:
-                line = getattr(start_tok.pos, 'line', '?')
-                col = getattr(start_tok.pos, 'col', '?')
-                Reg.get("curr_tab").write(f"[Error at {line}:{col}] {e}")
-                if self.idx < len(self.tokens): self.adv()
-                else: break
+            except VBaseErr as e:
+                Reg.get("curr_tab").write(e) 
+                break
 
         return ast
