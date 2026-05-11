@@ -42,9 +42,8 @@ class FuncNode(BaseNode):
         return f"Func: {self.name}({', '.join(self.params)}) {self.body}"
 
 class ReturnNode(BaseNode):
-    def __init__(self, value: BaseNode=None, _type: Vtype=None):
+    def __init__(self, value: BaseNode=None):
         self.value = value
-        self.type = _type
     def __repr__(self): 
         return f"Return: {self.value}"
 
@@ -73,11 +72,23 @@ class IfNode(BaseNode):
         return f"If: if ({self.condition}) {self.true_block} else {self.false_block}"
 
 class LoopNode(BaseNode):
-    def __init__(self, condition: BaseNode=None, body: list[BaseNode]=None):
+    def __init__(self, 
+        mode: str = "while",
+        condition: BaseNode = None,
+        var_name: str = None,
+        iterable: BaseNode = None,
+        body: BaseNode = None
+    ):
+        self.mode = mode
         self.condition = condition
+        self.var_name = var_name
+        self.iterable = iterable
         self.body = body
-    def __repr__(self): 
-        return f"Loop: while ({self.condition}) {self.body}"
+
+    def __repr__(self):
+        if self.mode == "while":
+            return f"Loop: while ({self.condition}) {self.body}"
+        return f"Loop: for {self.var_name} in {self.iterable} {self.body}"
 
 class StructNode(BaseNode):
     def __init__(self, name: str, list_item: dict[str, Vtype]|None=None):
@@ -109,3 +120,10 @@ class AccessNode(BaseNode):
         self.data = data
     def __repr__(self):
         return f"From {self.space} space: use {self.object} ({self.data})"
+
+class ExecNode(BaseNode):
+    def __init__(self, command: str="", arg: list[BaseNode]=[]):
+        self.command = command
+        self.arg = arg
+    def __repr__(self):
+        return f"Exec: {self.node}({", ".join(map(str, self.arg))})"

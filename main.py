@@ -51,28 +51,33 @@ def setup():
 
 class Core():
     def __init__(self): 
-        src.analyzer_setup()
+        self.lexer = src.Lexer()
+        self.parser = src.Parser()
 
         # Global self with app's registry
-        Reg.set("Process", self)
+        Reg.set("Core", self)
 
-    def run(self, code: str):
-        tokens = src.analyze(code=code)
+    def analyze(self, code: str) -> None:
+        tokens = self.lexer(code) 
+        ast = self.parser(tokens)
+
         print(tokens) # debug code
+        print(ast) # debug code
 
 class UI(ctk.CTk):
     def __init__(self):
         super().__init__()
-        self.width: int = 800; self.height: int = 600
+        Reg.set("UI", self)
+
+    def __call__(self, width: int=800, height: int=600): 
+        self.width: int = width; self.height: int = height
         self.geometry(f"{self.width}x{self.height}")
         self.title("VietNam Shell - 0.0.1 beta")
 
         self._frame_setup()
         self._bar = src.Bar(root=self._bar_frame, _box=self._box_frame)
         self._bar._switch_tab("Tab: 1")
-
-        Reg.set("UI", self)
-
+        
         self.mainloop()
 
     def _frame_setup(self) -> None: # frame setup
@@ -93,6 +98,9 @@ class UI(ctk.CTk):
 if __name__ == "__main__":
     setup()
 
-    # call main app
-    Core() # process code
-    UI() # user interface
+    try: PROCESS = Core()
+    except: PROCESS = None
+
+    # if PROCESS: 
+    INTERFACE = UI()
+    INTERFACE()

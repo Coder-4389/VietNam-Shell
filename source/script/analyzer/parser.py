@@ -14,6 +14,33 @@ from source.script.analyzer.context import *
 
 class Parser():
     def __init__(self): Reg.set("Parser", self)
+    
+    def __call__(self, tokens: list[Token]) -> list[BaseNode]:
+        self.tokens = tokens
+        self.idx = 0
+
+        self._envs: list[Environment] = [Environment(_name="global")]
+        ast: list[BaseNode] = []
+
+        while self.idx < len(self.tokens):
+            if self.match(Tok_t[";"]):
+                self.adv(); continue
+
+            # start_tok = self.curr 
+            # if self.match(Tok_t["NAME"]): node = self._use(start_tok)
+            # else: node = self._define(start_tok)
+            # if node: ast.append(node)
+            # # debug code
+
+            try:
+                start_tok = self.curr 
+                if self.match(Tok_t["NAME"]): node = self._ref(start_tok)
+                else: node = self._define(start_tok)
+                if node: ast.append(node)
+            except BaseErr as e: Reg.get("curr_tab").write(e); break
+            except KeyboardInterrupt: sys.exit(0)
+
+        return ast
 
     # --- tok ---
     @property
@@ -31,7 +58,8 @@ class Parser():
     def curr_env(self): return self._envs[-1]
     def in_env(self, name: str="") -> None:
         _env = Environment(_name=name, parent=self.curr_env)
-        self._envs.append(_env) 
+        self._envs.append(_env)
+    def cl_env(self) -> None: self._envs.append(self.curr_env)
     def out_env(self) -> None: 
         if len(self._envs) > 1: self._envs.pop()
     # -----------
@@ -114,7 +142,7 @@ class Parser():
         if self.curr and self.curr.value == "{": return cond_node
         raise SyntaxErr("Missing '{' after condition")
 
-    def _block(self) -> BaseNode: 
+    def _block(self, in_func: bool=False) -> BaseNode: 
         if not self.match(Tok_t["{"]): raise SyntaxErr("Missing '{' before block")
         self.adv()
         
@@ -127,6 +155,7 @@ class Parser():
             tok = self.curr
             try:
                 if self.match(Tok_t["NAME"]): node = self._ref(tok)
+                elif self.curr.value == "return" and in_func: node = self._return()
                 else: node = self._define(tok)
                 if node: statements.append(node)
             except BaseErr as e:
@@ -156,11 +185,36 @@ class Parser():
 
         return IfNode(condition=_cond, true_block=_body, false_block=_el)
 
-    def _loop(self) -> BaseNode: 
-        if self.curr.value == "while": _mode = "while"
-        elif self.curr.value == "for": _mode = "for"
-
+    def _return(self) -> BaseNode:
         self.adv()
+        
+        if self.curr and self.curr.value in (';', '\n', '}'): 
+            return ReturnNode(value=None)
+        _val = self._expr() 
+        return ReturnNode(value=_val)
+
+    def _loop(self) -> BaseNode: 
+        _mode = self.curr.value
+        self.adv()
+
+        if _mode == "while":
+            _condition = self._cond() 
+            _body = self._block() 
+            
+            return LoopNode(mode="while", condition=_condition, body=_body)
+            
+        elif _mode == "for":
+            if not self.match(Tok_t["NAME"]): raise SyntaxErr("Cần tên biến chạy sau 'for'")
+            _var_name = self.curr.value
+            self.adv()
+
+            if self.curr.value != "in": raise SyntaxErr("Cần từ khóa 'in' sau tên biến")
+            self.adv()
+
+            _object = self._expr() 
+            _body = self._block(in_func=False)
+
+            return LoopNode(mode="for", var_name=_var_name, iterable=_object, body=_body)
 
     def _asg(self) -> BaseNode:
         if self.curr.value == "set": _mode = "set"
@@ -212,7 +266,7 @@ class Parser():
         if not self.match(Tok_t[")"]): raise SyntaxErr("Expected ')' after parameters")
         self.adv()
 
-        _node.body = self._block()
+        _node.body = self._block(in_func=True)
         _node.params = params
 
         self.out_env()
@@ -299,29 +353,3 @@ class Parser():
 
     # ---------------
 
-    def parse(self, tokens: list[Token]) -> list[BaseNode]:
-        self.tokens = tokens
-        self.idx = 0
-
-        self._envs: list[Environment] = [Environment(_name="global")]
-        ast: list[BaseNode] = []
-
-        while self.idx < len(self.tokens):
-            if self.match(Tok_t[";"]):
-                self.adv(); continue
-
-            # start_tok = self.curr 
-            # if self.match(Tok_t["NAME"]): node = self._use(start_tok)
-            # else: node = self._define(start_tok)
-            # if node: ast.append(node)
-            # # debug code
-
-            try:
-                start_tok = self.curr 
-                if self.match(Tok_t["NAME"]): node = self._ref(start_tok)
-                else: node = self._define(start_tok)
-                if node: ast.append(node)
-            except BaseErr as e: Reg.get("curr_tab").write(e); break
-            except KeyboardInterrupt: sys.exit(0)
-
-        return ast

@@ -9,7 +9,8 @@
     ],
     "Define-Code": [
         "func", "struct",
-        "set", "const", "space"
+        "set", "const", "space",
+        "return"
     ],
     "Types-Code": [
         "int", "float", "str", "bool", "char",

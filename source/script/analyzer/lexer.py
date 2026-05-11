@@ -18,7 +18,7 @@ def _kword_load() -> list[str]:
 
     return listed_keywords
 
-class Lexer:
+class Lexer():
     def __init__(self) -> list:
         self.spec_chars = set(string.punctuation) - {"_"}
         self.spec_dchars = {
@@ -26,6 +26,14 @@ class Lexer:
         }; self.pos = Pos()
 
         Reg.set("Lexer", self)
+        
+    def __call__(self, code: str) -> list:
+        tokens: list[Token] = []
+        for tok in self._process_code(code):
+            tok_type = self._type_check(tok[0]); tok_pos = tok[1]
+            tokens.append(Token(tok_type, tok[0], tok_pos))
+
+        return tokens
 
     def _process_code(self, code: str) -> tuple:
         i: int = 0
@@ -111,10 +119,3 @@ class Lexer:
             return Tok_t.get("NAME", Tok_t["UNKNOWN"])
         return Tok_t["UNKNOWN"]
 
-    def tokenize(self, code: str) -> list:
-        tokens: list[Token] = []
-        for tok in self._process_code(code):
-            tok_type = self._type_check(tok[0]); tok_pos = tok[1]
-            tokens.append(Token(tok_type, tok[0], tok_pos))
-
-        return tokens

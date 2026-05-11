@@ -1,2 +1,2 @@
-from .analyzer import analyze, analyzer_setup
+from .analyzer import *
 from .token import *

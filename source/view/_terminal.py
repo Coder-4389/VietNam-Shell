@@ -65,7 +65,7 @@ class _Terminal(ctk.CTkTextbox):
     def _prompt(self, event=None): 
         if self.index("end-1c") != self.index("lockpos"): 
             code = self.get("lockpos", "end-1c")
-            Reg.get("Process").run(code)
+            Reg.get("Core").analyze(code)
 
         self.insert("end", _make_prompt(self.path))
         self.mark_set("lockpos", "end-1c")
