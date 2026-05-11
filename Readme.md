@@ -17,8 +17,6 @@
 
     + Develop VietNam Shell's TUI in `source/view/` or `assets`
 
-- 
-
 ---
 
 ## Some notes about VietNam Shell you need know before develop
@@ -27,7 +25,7 @@
     + The source folder have structure is like this
     ```
     source/
-    ├─ engine/
+    ├─ runtime/
     ├─ script/
     ├─ view/
     └─ registry.py
@@ -35,7 +33,7 @@
 
     ---
     > It have 3 main dir are: 
-    -  **engine folder is a folder have runtime and compiler write by C/C++.**
+    - **runtime folder is a folder have runtime and write by C or C++.**
     - **script folder is a folder contain analyzer the code's syntax.**
     - **view folder have app TUI and app interface with python's customtkinter**
 
@@ -48,4 +46,30 @@
     + You can build a community for VietNam Shell in internet
     + You talking VietNam Shell for more coder to make popularity
 
- ---
+---
+
+ ## The steps to move the project and develop environment from github to your computer
+
+ 1. **Install git if you don't have**
+    ```bash
+    sudo apt update
+    sudo apt install git
+    ```
+
+2. **Download the project from github**
+    ```bash
+    git clone https://github.com/ten-nguoi-dung/ten-du-an.git
+    ```
+
+3. **Make the environment for the project**
+    ```bash
+    python3 -m venv venv
+    source venv/bin/activate
+    ```
+4. **Install all library we need to develop**
+    ```bash
+    pip3 install -r requirements.txt
+    ```
+
+- **if you used more library to develop the project**
+- **you need write and run pip freeze > requirements.txt**
