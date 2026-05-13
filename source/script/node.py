@@ -9,12 +9,16 @@ class ValueNode(BaseNode):
     def __init__(self, value: any=None, _type: Vtype=None): 
         self.value = value
         self.type = _type
+    def __getitem__(self, key):
+        if self.kind in ["list", "dict"]: return self.value.get(key, None)
+        return None
     def __repr__(self): 
         return f"Value: {self.value}, Type: {self.type}"
 
 class AsgNode(BaseNode):
-    def __init__(self, name: str="", value: BaseNode=None):
+    def __init__(self, name: str="", index: BaseNode=None, value: BaseNode=None, op: str=""):
         self.name = name
+        self.index = index
         self.value = value
     def __repr__(self): 
         return f"Assign: {self.name} = {self.value}"
@@ -106,17 +110,16 @@ class CallNode(BaseNode):
         return f"Call: {self.name}({', '.join(map(str, self.args))})"
 
 class VarNode(BaseNode):
-    def __init__(self, name: str="", value: BaseNode=None, _type: Vtype=None):
+    def __init__(self, name: str="", _index: BaseNode=None):
         self.name = name
-        self.value = value
-        self.type = _type
+        self.index = _index
     def __repr__(self): 
         return f"Var: {self.name}"
 
 class AccessNode(BaseNode):
-    def __init__(self, space: str=None, _object: str=None, data: BaseNode=None):
+    def __init__(self, space: str=None, name: str=None, data: BaseNode=None):
         self.space = space
-        self.object = _object
+        self.name = name
         self.data = data
     def __repr__(self):
         return f"From {self.space} space: use {self.object} ({self.data})"

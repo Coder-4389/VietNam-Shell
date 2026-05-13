@@ -120,22 +120,75 @@ class Parser():
             return node
 
         value_map = {
-            Tok_t["INT"]:   (int, BaseTypes["INT"]),
-            Tok_t["FLOAT"]: (float, BaseTypes["FLOAT"]),
-            Tok_t["STR"]:   (lambda v: v[1:-1], BaseTypes["STR"]),
-            Tok_t["CHAR"]:  (lambda v: v[1], BaseTypes["CHAR"]),
-            Tok_t["BOOL"]:  (lambda v: v.lower() == "true", BaseTypes["BOOL"]),
+            Tok_t["INT"]:   (int,                           "INT"),
+            Tok_t["FLOAT"]: (float,                         "FLOAT"),
+            Tok_t["STR"]:   (lambda v: v[1:-1],             "STR"),
+            Tok_t["CHAR"]:  (lambda v: v[1],                "CHAR"),
+            Tok_t["BOOL"]:  (lambda v: v.lower() == "true", "BOOL"),
+            Tok_t["["]:     (self._list,                    "LIST"),
+            Tok_t["{"]:     (self._dict,                    "DICT"),
         }
 
         if tok.type in value_map:
-            converter, _type = value_map[tok.type]; self.adv() 
-            return ValueNode(value=converter(tok.value), _type=_type)
+            if tok.type not in [Tok_t["["], Tok_t["{"]]:
+                converter, _type = value_map[tok.type]; self.adv() 
+                return ValueNode(value=converter(tok.value), _type=_type)
+            else: converter, _type = value_map[tok.type]; return converter()
 
         if self.match(Tok_t["NAME"]):
             node = self._ref(tok); self.adv()
             return node
 
         raise VunknownErr(f"Unexpected token: {tok.value}")
+
+    def _list(self) -> BaseNode: 
+        _list: list[BaseNode] = []
+        self.adv()
+
+        while self.idx < len(self.tokens) and not self.match(Tok_t["]"]):
+            if self.match(Tok_t["]"]): break
+            if self.curr.value in ['\n']:
+                self.adv(); continue
+
+            _item = self._expr()
+            _list.append(_item)
+
+            if self.match(Tok_t[","]): self.adv()
+            elif self.match(Tok_t["]"]): break
+            else: raise SyntaxErr("Expected ',' or ']'")
+
+        if not self.match(Tok_t["]"]): raise SyntaxErr("Missing ']' after list")
+        self.adv()
+
+        return ValueNode(value=_list, _type=Vtype(kind=Base_ts, name="LIST"))
+
+    def _dict(self, *arg) -> BaseNode: 
+        _dict: dict[ValueNode, BaseNode] = {}
+        self.adv()
+
+        while self.idx < len(self.tokens) and not self.match(Tok_t["}"]):
+            if self.match(Tok_t["}"]): break
+
+            if self.curr.value in ['\n']:
+                self.adv(); continue
+
+            _key = self.value()
+
+            if not self.match(Tok_t[":"]): raise SyntaxErr("Expected ':' after key")
+            self.adv()
+
+            _value = self._expr()
+            _dict[_key] = _value
+
+            if self.match(Tok_t[","]): self.adv()
+            elif self.match(Tok_t["}"]): break
+            else: raise SyntaxErr("Expected ',' or '}'")
+
+        if not self.match(Tok_t["}"]): raise SyntaxErr("Missing '}' after dict")
+        self.adv()
+       
+        _node = ValueNode(value=_dict, _type=Vtype(kind=Base_ts, name="DICT"))
+        return _node
 
     def _cond(self) -> BaseNode: 
         cond_node = self._expr(mopl=-3)
@@ -204,11 +257,11 @@ class Parser():
             return LoopNode(mode="while", condition=_condition, body=_body)
             
         elif _mode == "for":
-            if not self.match(Tok_t["NAME"]): raise SyntaxErr("Cần tên biến chạy sau 'for'")
+            if not self.match(Tok_t["NAME"]): raise SyntaxErr("Expected var name after 'for'")
             _var_name = self.curr.value
             self.adv()
 
-            if self.curr.value != "in": raise SyntaxErr("Cần từ khóa 'in' sau tên biến")
+            if self.curr.value != "in": raise SyntaxErr("Expected 'in' after var name")
             self.adv()
 
             _object = self._expr() 
@@ -217,14 +270,21 @@ class Parser():
             return LoopNode(mode="for", var_name=_var_name, iterable=_object, body=_body)
 
     def _asg(self) -> BaseNode:
-        if self.curr.value == "set": _mode = "set"
-        elif self.curr.value == "const": _mode = "const"
+        _mode = self.curr.value
 
         self.adv()
         if self.curr.type != Tok_t["NAME"]: raise SyntaxErr(f"Expected var name to assign the var")
         _name = self.curr.value
         self.adv()
+
+        _index = None
+        if self.match(Tok_t["["]):
+            self.adv()
+            _index = self._expr()
+            if not self.match(Tok_t["]"]): raise SyntaxErr("Expected ']' after index")
+            self.adv()
         
+        _op = self.curr.value
         valid_ops = ["=", "+=", "-=", "*=", "/=", "%="]
         if self.curr.value not in valid_ops: raise SyntaxErr(f"Expected '=' to assign the var")
         self.adv()
@@ -232,9 +292,10 @@ class Parser():
         tok = self.curr
         _value = self._expr()
 
-        if _mode == "set": self.curr_env.var_def(name=_name, _type=_value.type)
-        elif _mode == "const": self.curr_env.const_def(name=_name, _type=_value.type)
-        return AsgNode(name=_name, value=_value)
+        if _op == "=" and _index is None:
+            if _mode == "set": self.curr_env.var_def(name=_name, _type=_value.type)
+            elif _mode == "const": self.curr_env.const_def(name=_name, _type=_value.type)
+        return AsgNode(name=_name, index=_index, value=_value, op=_op)
 
     def _func(self) -> BaseNode: 
         self.adv()
@@ -347,9 +408,66 @@ class Parser():
         else: return self._var()
         raise UnknowErr(f"Unexpected token: {tok.value}")
 
-    def _call(self): ...
-    def _access(self): ...
-    def _var(self): ...
+    def _call(self): 
+        _name = self.curr.value
+        self.adv()
+
+        if not self.match(Tok_t["("]): raise SyntaxErr("Expected '(' after function name")
+        self.adv()
+
+        _args: list[BaseNode] = []
+
+        while self.idx < len(self.tokens) and not self.match(Tok_t[")"]):
+            if self.match(Tok_t[")"]): break
+            if self.curr.value in ['\n']:
+                self.adv(); continue
+
+            _arg = self._expr()
+            _args.append(_arg)
+
+            if self.match(Tok_t[","]): self.adv()
+            elif self.match(Tok_t[")"]): break
+            else: raise SyntaxErr("Expected ',' or ')' after argument")
+
+        if not self.match(Tok_t[")"]): raise SyntaxErr("Expected ')' after arguments")
+        self.adv()
+
+        return CallNode(name=_name, args=_args)
+
+    def _access(self): 
+        _root = self.curr.value
+        self.adv()
+
+        if _root in self.curr_env._space: _mode = "space"
+        elif _root in self.curr_env._struct: _mode = "struct"
+        else: raise NameErr(f"Couldn't find '{self.curr.value}'")
+
+        if not self.match(Tok_t["."]): raise SyntaxErr("Expected '.' to access object")
+        self.adv()
+
+        _name = self.curr.value
+
+        _data = None
+        if self.peek().type == Tok_t["("]: _data = self._call()
+        elif self.peek().type == Tok_t["."]: _data = self._access()
+        else: _data = self._var()
+
+        return AccessNode(space=_mode, _object=_name, data=_data)
+
+    def _var(self): 
+        _name = self.curr.value
+        self.adv()
+
+        if _name not in self.curr_env._var+self.curr_env._const: raise NameErr(f"Not found '{_name}'")
+
+        _index = None
+        if self.match(Tok_t["["]):
+            self.adv()
+            _index = self._expr()
+            if not self.match(Tok_t["]"]): raise SyntaxErr("Expected ']' after index")
+            self.adv()
+        
+        return VarNode(name=_name, _index=_index)
 
     # ---------------
 

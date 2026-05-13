@@ -4,9 +4,6 @@
         "for", "while", "break",
         "use", "as"
     ],
-    "Execute-Code": [
-        "print", "input"
-    ],
     "Define-Code": [
         "func", "struct",
         "set", "const", "space",

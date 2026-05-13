@@ -72,4 +72,4 @@
     ```
 
 - **if you used more library to develop the project**
-- **you need write and run pip freeze > requirements.txt**
+- **you need write and run** `pip freeze > requirements.txt`

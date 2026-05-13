@@ -6,7 +6,6 @@ class Vtype():
     def __init__(self, **kwargs: any):
         self.kind = kwargs.get("kind", None)
         self.name = kwargs.get("name", None)
-        self.node = kwargs.get("node", None)
 
 
 class BaseTypes(Enum):
@@ -16,6 +15,9 @@ class BaseTypes(Enum):
     STR = auto()
     CHAR = auto()
     BOOL = auto() 
+
+    LIST = auto()
+    DICT = auto()
 
     ANY = auto()
 

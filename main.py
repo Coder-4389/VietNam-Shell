@@ -69,10 +69,13 @@ class UI(ctk.CTk):
         super().__init__()
         Reg.set("UI", self)
 
-    def __call__(self, width: int=800, height: int=600): 
-        self.width: int = width; self.height: int = height
+    def __call__(self, **kwargs: any): 
+        self.width: int = kwargs.get("width", 800)
+        self.height: int = kwargs.get("height", 600)
+        self.name: str = kwargs.get("title", "VietNam Shell")
+
         self.geometry(f"{self.width}x{self.height}")
-        self.title("VietNam Shell - 0.0.1 beta")
+        self.title(self.name)
 
         self._frame_setup()
         self._bar = src.Bar(root=self._bar_frame, _box=self._box_frame)
