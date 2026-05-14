@@ -44,8 +44,12 @@ class Environment():
         if name in self._const: raise NameErr("Const can't change value after defined")
         self._const[name] = _type
     def func_def(self, func: FuncNode): self._func[func.name] = func
-    def struct_def(self, struct: StructNode): self._struct[struct.name] = struct
-    def space_def(self, space: SpaceNode): self._space[space.name] = space
+    def struct_def(self, struct: StructNode): 
+        if name in self._space: raise NameErr("Struct name can't be like space name")
+        self._struct[struct.name] = struct
+    def space_def(self, space: SpaceNode): 
+        if name in self._struct: raise NameErr("Space name can't be like struct name")
+        self._space[space.name] = space
 
     def get(self, name: str) -> BaseNode:
         try:
